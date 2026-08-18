@@ -1,4 +1,4 @@
-# Python-generated files
+# Python
 __pycache__/
 *.py[oc]
 build/
@@ -8,5 +8,22 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Tools
 .serena
 .claude
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Generated test certificates (bash certs/generate.sh)
+certs/*.key
+certs/*.crt
+certs/*.csr
+certs/*.pem
+certs/*.srl
