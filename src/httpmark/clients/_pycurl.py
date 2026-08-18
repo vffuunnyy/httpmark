@@ -6,7 +6,7 @@ from httpmark.config import BenchmarkConfig
 
 class SyncHTTPClient(SyncClient):
     name = "pycurl"
-    http_versions = ["1.1"]
+    http_versions = ("1.1",)
 
     def setup(self, config: BenchmarkConfig) -> None:
         self._curl = pycurl.Curl()

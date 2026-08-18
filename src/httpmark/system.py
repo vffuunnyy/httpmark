@@ -4,7 +4,11 @@ import platform
 import resource
 import subprocess
 import sys
+
 from importlib import metadata
+from pathlib import Path
+from typing import ClassVar
+
 
 CLIENT_PACKAGES = [
     "aiohttp",
@@ -21,6 +25,8 @@ CLIENT_PACKAGES = [
     "rnet",
     "wreq",
     "requests",
+    "zapros",
+    "httpx-aiohttp",
 ]
 
 
@@ -60,8 +66,7 @@ def raise_priority(delta: int = -5) -> int | None:
 
 def _read_sys(path: str) -> str | None:
     try:
-        with open(path) as f:
-            return f.read().strip()
+        return Path(path).read_text().strip()
     except OSError:
         return None
 
@@ -75,7 +80,7 @@ def environment_warnings(cores: list[int] | None) -> list[str]:
         )
         return warnings
 
-    cpus = cores if cores else list(range(os.cpu_count() or 1))
+    cpus = cores or list(range(os.cpu_count() or 1))
     non_performance: dict[str, list[int]] = {}
     for cpu in cpus:
         governor = _read_sys(f"/sys/devices/system/cpu/cpu{cpu}/cpufreq/scaling_governor")
@@ -89,8 +94,7 @@ def environment_warnings(cores: list[int] | None) -> list[str]:
 
     if _read_sys("/sys/devices/system/cpu/intel_pstate/no_turbo") == "0":
         warnings.append(
-            "turbo boost is enabled (intel_pstate/no_turbo=0); "
-            "disable it for run-to-run stability"
+            "turbo boost is enabled (intel_pstate/no_turbo=0); disable it for run-to-run stability"
         )
     if _read_sys("/sys/devices/system/cpu/cpufreq/boost") == "1":
         warnings.append("boost is enabled (cpufreq/boost=1); disable it for run-to-run stability")
@@ -108,7 +112,7 @@ if sys.platform == "darwin":
 
     class _ProcTaskInfo(ctypes.Structure):
         # struct proc_taskinfo from <libproc.h>
-        _fields_ = [
+        _fields_: ClassVar = [
             ("pti_virtual_size", ctypes.c_uint64),
             ("pti_resident_size", ctypes.c_uint64),
             ("pti_total_user", ctypes.c_uint64),
@@ -144,10 +148,10 @@ else:
 
     def current_rss_bytes() -> int:
         try:
-            with open("/proc/self/statm") as f:
-                return int(f.read().split()[1]) * os.sysconf("SC_PAGESIZE")
+            pages = int(Path("/proc/self/statm").read_text().split()[1])
         except (OSError, ValueError, IndexError):
             return 0
+        return pages * os.sysconf("SC_PAGESIZE")
 
 
 def peak_rss_bytes() -> int:
@@ -165,17 +169,17 @@ def _cpu_model() -> str:
     if sys.platform == "darwin":
         try:
             return subprocess.check_output(
-                ["sysctl", "-n", "machdep.cpu.brand_string"], text=True
+                ["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string"], text=True
             ).strip()
         except (OSError, subprocess.CalledProcessError):
             return platform.machine()
     try:
-        with open("/proc/cpuinfo") as f:
-            for line in f:
-                if line.lower().startswith("model name"):
-                    return line.split(":", 1)[1].strip()
+        cpuinfo = Path("/proc/cpuinfo").read_text()
     except OSError:
-        pass
+        cpuinfo = ""
+    for line in cpuinfo.splitlines():
+        if line.lower().startswith("model name"):
+            return line.split(":", 1)[1].strip()
     return platform.processor() or platform.machine()
 
 
@@ -190,11 +194,16 @@ def package_versions() -> dict[str, str]:
 
 
 def collect_environment() -> dict:
+    try:
+        gil_enabled = sys._is_gil_enabled()
+    except AttributeError:
+        gil_enabled = True
     return {
         "os": f"{platform.system()} {platform.release()}",
         "arch": platform.machine(),
         "cpu": _cpu_model(),
         "cpu_count": os.cpu_count(),
         "python": f"{platform.python_implementation()} {platform.python_version()}",
+        "gil_enabled": gil_enabled,
         "packages": package_versions(),
     }

@@ -1,11 +1,13 @@
 import argparse
 import sys
+
 from pathlib import Path
 
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 
 from httpmark import system
+from httpmark.clients import ASYNC_HTTP1_CLIENTS, ASYNC_HTTP2_CLIENTS, SYNC_CLIENTS, UNAVAILABLE
 from httpmark.config import BenchmarkConfig
 from httpmark.reporter import print_all, print_environment, to_json
 from httpmark.runner import build_plan, execute
@@ -18,10 +20,16 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--url", default="https://httpbin.local:4443/get", help="Target URL")
     p.add_argument("--ca-cert", default="./certs/ca.crt", help="CA certificate file")
-    p.add_argument("--iterations", "-n", type=int, default=30, help="Measurement iterations per client")
+    p.add_argument(
+        "--iterations", "-n", type=int, default=30, help="Measurement iterations per client"
+    )
     p.add_argument("--warmup", type=int, default=3, help="Warmup iterations per round")
-    p.add_argument("--total-requests", "-r", type=int, default=10000, help="Requests per async iteration")
-    p.add_argument("--concurrency", "-c", type=int, default=100, help="Concurrent workers per async iteration")
+    p.add_argument(
+        "--total-requests", "-r", type=int, default=10000, help="Requests per async iteration"
+    )
+    p.add_argument(
+        "--concurrency", "-c", type=int, default=100, help="Concurrent workers per async iteration"
+    )
     p.add_argument("--sync-requests", type=int, default=200, help="Requests per sync iteration")
     p.add_argument("--pool-size", type=int, default=100, help="Connection pool size")
     p.add_argument(
@@ -35,7 +43,9 @@ def parse_args() -> argparse.Namespace:
         default=1,
         help="Split iterations into N round-robin passes over all clients to average out drift",
     )
-    p.add_argument("--shuffle", action="store_true", help="Randomize client order within each round")
+    p.add_argument(
+        "--shuffle", action="store_true", help="Randomize client order within each round"
+    )
     p.add_argument(
         "--categories",
         nargs="+",
@@ -49,21 +59,24 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Specific clients to run (e.g. aiohttp httpx rnet)",
     )
-    p.add_argument("--iter-timeout", type=float, default=120.0, help="Timeout per async iteration in seconds (0=none)")
+    p.add_argument(
+        "--iter-timeout",
+        type=float,
+        default=120.0,
+        help="Timeout per async iteration in seconds (0=none)",
+    )
     p.add_argument(
         "--time-budget",
         type=float,
         default=0.0,
-        help="Wall-clock budget in seconds per client per round; slow clients stop early with fewer iterations (0=off)",
+        help="Wall-clock seconds per client per round; slow clients stop early (0=off)",
     )
     p.add_argument("--json", action="store_true", help="Print results as JSON to stdout")
     p.add_argument("--output", type=Path, default=None, help="Also write JSON results to a file")
     return p.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
-
+def validate_args(args: argparse.Namespace) -> None:
     for name, value, minimum in (
         ("--iterations", args.iterations, 1),
         ("--warmup", args.warmup, 0),
@@ -83,12 +96,19 @@ def main() -> None:
         except ValueError as e:
             sys.exit(f"invalid --cpu-affinity: {e}")
     if args.clients:
-        from httpmark.clients import ASYNC_HTTP1_CLIENTS, ASYNC_HTTP2_CLIENTS, SYNC_CLIENTS
-
-        known = {c.name for group in (SYNC_CLIENTS, ASYNC_HTTP1_CLIENTS, ASYNC_HTTP2_CLIENTS) for c in group}
+        known = {
+            c.name
+            for group in (SYNC_CLIENTS, ASYNC_HTTP1_CLIENTS, ASYNC_HTTP2_CLIENTS)
+            for c in group
+        }
         unknown = sorted(set(args.clients) - known)
         if unknown:
             sys.exit(f"unknown clients: {', '.join(unknown)} (known: {', '.join(sorted(known))})")
+
+
+def main() -> None:
+    args = parse_args()
+    validate_args(args)
 
     config = BenchmarkConfig(
         url=args.url,
@@ -109,6 +129,9 @@ def main() -> None:
     cores = system.parse_cpu_spec(args.cpu_affinity) if args.cpu_affinity else None
     warnings = system.environment_warnings(cores)
     print_environment(console, env, config, warnings)
+
+    if UNAVAILABLE:
+        console.print(f"  [yellow]unavailable clients:[/yellow] {', '.join(sorted(UNAVAILABLE))}")
 
     plan = build_plan(args.categories, args.clients)
     if not plan:

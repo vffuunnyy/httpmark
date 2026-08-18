@@ -10,7 +10,7 @@ from httpmark.config import BenchmarkConfig
 
 class Client(AsyncClient):
     name = "aiosonic"
-    http_versions = ["1.1"]
+    http_versions = ("1.1",)
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         self._ssl = ssl.create_default_context(cafile=config.ca_cert)

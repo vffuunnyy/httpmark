@@ -20,7 +20,7 @@ def _client_kwargs(config: BenchmarkConfig, http_version: str) -> dict:
 
 class Client(AsyncClient):
     name = "wreq"
-    http_versions = ["1.1", "2"]
+    http_versions = ("1.1", "2")
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         self._client = wreq.Client(**_client_kwargs(config, http_version))
@@ -36,7 +36,7 @@ class Client(AsyncClient):
 
 class SyncHTTPClient(SyncClient):
     name = "wreq"
-    http_versions = ["1.1"]
+    http_versions = ("1.1",)
 
     def setup(self, config: BenchmarkConfig) -> None:
         self._client = wreq.blocking.Client(**_client_kwargs(config, "1.1"))

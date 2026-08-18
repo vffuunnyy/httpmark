@@ -6,7 +6,7 @@ from httpmark.config import BenchmarkConfig
 
 class Client(AsyncClient):
     name = "impit"
-    http_versions = ["1.1"]
+    http_versions = ("1.1",)
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         self._client = ImpitAsyncClient(verify=False)

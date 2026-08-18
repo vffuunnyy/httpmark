@@ -6,7 +6,7 @@ from httpmark.config import BenchmarkConfig
 
 class Client(AsyncClient):
     name = "primp"
-    http_versions = ["1.1", "2"]
+    http_versions = ("1.1", "2")
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         self._client = primp.AsyncClient(
@@ -21,13 +21,13 @@ class Client(AsyncClient):
 
     async def get(self, url: str) -> int:
         resp = await self._client.get(url)
-        resp.content
+        _ = resp.content
         return resp.status_code
 
 
 class SyncHTTPClient(SyncClient):
     name = "primp"
-    http_versions = ["1.1"]
+    http_versions = ("1.1",)
 
     def setup(self, config: BenchmarkConfig) -> None:
         self._client = primp.Client(
@@ -41,5 +41,5 @@ class SyncHTTPClient(SyncClient):
 
     def get(self, url: str) -> int:
         resp = self._client.get(url)
-        resp.content
+        _ = resp.content
         return resp.status_code

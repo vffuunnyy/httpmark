@@ -6,7 +6,7 @@ from httpmark.config import BenchmarkConfig
 
 class AsyncClient(ABC):
     name: ClassVar[str]
-    http_versions: ClassVar[list[str]]
+    http_versions: ClassVar[tuple[str, ...]]
 
     @abstractmethod
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None: ...
@@ -20,7 +20,7 @@ class AsyncClient(ABC):
 
 class SyncClient(ABC):
     name: ClassVar[str]
-    http_versions: ClassVar[list[str]] = ["1.1"]
+    http_versions: ClassVar[tuple[str, ...]] = ("1.1",)
 
     @abstractmethod
     def setup(self, config: BenchmarkConfig) -> None: ...

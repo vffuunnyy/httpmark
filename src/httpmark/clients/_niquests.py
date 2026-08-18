@@ -6,7 +6,7 @@ from httpmark.config import BenchmarkConfig
 
 class Client(AsyncClient):
     name = "niquests"
-    http_versions = ["1.1", "2"]
+    http_versions = ("1.1", "2")
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         use_multiplexed = http_version == "2"

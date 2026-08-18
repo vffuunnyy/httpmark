@@ -7,7 +7,7 @@ license = "MIT"
 authors = [
     { name = "vffuunnyy", email = "vffuunnyy@gmail.com" }
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.13",
     "httpx[http2]>=0.28",
@@ -23,6 +23,8 @@ dependencies = [
     "aiosonic>=1.0",
     "pycurl>=7.47",
     "wreq>=0.12",
+    "zapros>=0.16",
+    "httpx-aiohttp>=0.2",
 ]
 
 [project.scripts]

@@ -11,7 +11,7 @@ def _curl_http_version(http_version: str) -> CurlHttpVersion:
 
 class Client(AsyncClient):
     name = "curl_cffi"
-    http_versions = ["1.1", "2"]
+    http_versions = ("1.1", "2")
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         self._session = AsyncSession(
@@ -30,7 +30,7 @@ class Client(AsyncClient):
 
 class SyncHTTPClient(SyncClient):
     name = "curl_cffi"
-    http_versions = ["1.1"]
+    http_versions = ("1.1",)
 
     def setup(self, config: BenchmarkConfig) -> None:
         self._session = Session(

@@ -8,7 +8,7 @@ from httpmark.config import BenchmarkConfig
 
 class Client(AsyncClient):
     name = "pyreqwest"
-    http_versions = ["1.1", "2"]
+    http_versions = ("1.1", "2")
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         pem = Path(config.ca_cert).read_bytes()
@@ -19,10 +19,7 @@ class Client(AsyncClient):
             .max_connections(pool_size)
             .pool_max_idle_per_host(pool_size)
         )
-        if http_version == "2":
-            builder = builder.http2(True)
-        else:
-            builder = builder.http1_only()
+        builder = builder.http2(True) if http_version == "2" else builder.http1_only()
         self._client = builder.build()
 
     async def teardown(self) -> None:
@@ -36,7 +33,7 @@ class Client(AsyncClient):
 
 class SyncHTTPClient(SyncClient):
     name = "pyreqwest"
-    http_versions = ["1.1"]
+    http_versions = ("1.1",)
 
     def setup(self, config: BenchmarkConfig) -> None:
         pem = Path(config.ca_cert).read_bytes()

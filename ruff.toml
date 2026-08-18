@@ -1,0 +1,119 @@
+target-version = "py313"
+src = ["src", "scripts"]
+fix = true
+line-length = 100
+
+[lint]
+select = [
+    "A",      # flake8-builtins
+    "ANN",    # flake8-annotations
+    "ARG",    # flake8-unused-arguments
+    "ASYNC",  # flake8-async
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "C40",    # flake8-comprehensions
+    "C90",    # mccabe
+    "COM",    # flake8-commas
+    "DTZ",    # flake8-datetimez
+    "E",      # pycodestyle errors
+    "ERA",    # flake8-eradicate/eradicate
+    "EXE",    # flake8-executable
+    "F",      # pyflakes
+    "FLY",    # flynt
+    "FURB",   # refurb
+    "G",      # flake8-logging-format
+    "I",      # isort
+    "ICN",    # flake8-import-conventions
+    "INP",    # flake8-no-pep420
+    "ISC",    # flake8-implicit-str-concat
+    "N",      # pep8-naming
+    "PGH",    # pygrep
+    "PIE",    # flake8-pie
+    "PL",     # pylint
+    "PT",     # flake8-pytest-style
+    "PTH",    # flake8-pathlib
+    "RET",    # flake8-return
+    "RSE",    # flake8-raise
+    "RUF",    # ruff checks
+    "S",      #  flake8-bandit
+    "SIM",    # flake8-simplify
+    "T10",    # flake8-debugger
+    "T20",    # flake8-print     #",
+    "TID",    # flake8-tidy-imports
+    "UP",     # pyupgrade
+    "W",      # pycodestyle warnings
+    "YTT",    # flake8-2020
+    "UP006",  # Use `list` instead of `List` for type annotation
+    "UP007",  # Use `X | Y` for type annotations
+    "S311",   # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "TID252", # Import from package instead of module
+    "ALL",    # All not listed above
+]
+ignore = [
+    "B008",
+    "COM812",
+    "ISC001",
+    "W191",
+    "BLE",     # flake8-blind-except
+    "FBT",     # flake8-boolean-trap
+    "DJ",      # flake8-Django
+    "EM",      # flake8-errmsg
+    "PYI",     # flake8-pyi
+    "Q",       # flake8-quotes
+    "PD",      # pandas-vet
+    "D",       # pydocstyle
+    "TRY",     # tryceratops
+    "SLF",     # flake8-self
+    "B904",    # use 'raise ... from err'
+    "B905",    # `zip()` without an explicit `strict=` parameter (python3.10+ only)
+    "PLR0913", # Too many arguments to function call
+    "A003",    # Class attribute builtin name shadowing
+    "N818",    # Exception should be named with an Error suffix
+    "PGH003",  # Use specific rule codes when ignoring type issues
+    "ARG002",  # Unused method argument
+    "ANN002",  # typed args
+    "ANN003",  # typed kwargs
+    "ANN204",  # typed __init__
+    "RUF001",  # String contains ambiguous unicode character
+    "RUF002",  # Docstring contains ambiguous unicode character
+    "RUF003",  # Comment contains ambiguous unicode character
+    "PLW2901", # for loop variable overwritten by assignment target
+    "PLE1205", # https://github.com/charliermarsh/ruff/issues/3351
+    "B030",    # Except handlers should only be exception classes or tuples of exception
+    "S301",    # `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue,
+    "ERA001",  # Commented out code
+    "T201",    # print() used
+    "FA102",   # `__future__` import "annotations" missing
+    "CPY001",  # Missing copyright notice at top of file
+    "EXE002",  # Checks for executable .py files that do not have a shebang.
+    "ANN401",  # typing.Any should not be used as a type annotation
+]
+fixable = ["ALL"]
+unfixable = ["ERA"] # do not autoremove commented out code
+
+[lint.pep8-naming]
+classmethod-decorators = ["classmethod", "pydantic.field_validator"]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
+"src/httpmark/clients/*" = ["ASYNC240"]
+"src/httpmark/reporter.py" = ["PLR2004"]
+"src/httpmark/metrics.py" = ["PLR2004"]
+"scripts/report.py" = ["PLR2004"]
+
+[lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[lint.isort]
+known-first-party = ["httpmark"]
+case-sensitive = true
+combine-as-imports = true
+lines-between-types = 1
+lines-after-imports = 2
+
+[format]
+preview = true
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

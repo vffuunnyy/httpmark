@@ -8,7 +8,7 @@ from httpmark.config import BenchmarkConfig
 
 class Client(AsyncClient):
     name = "aiohttp"
-    http_versions = ["1.1"]
+    http_versions = ("1.1",)
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         ssl_context = ssl.create_default_context(cafile=config.ca_cert)
