@@ -1,7 +1,7 @@
 import niquests
 
-from bench_req.clients.base import AsyncClient
-from bench_req.config import BenchmarkConfig
+from httpmark.clients.base import AsyncClient
+from httpmark.config import BenchmarkConfig
 
 
 class Client(AsyncClient):

@@ -1,8 +1,9 @@
 [project]
-name = "bench-req"
-version = "0.2.0"
-description = "HTTP clients benchmarking suite"
+name = "httpmark"
+version = "0.3.0"
+description = "Benchmark suite for Python HTTP clients: sync/async, HTTP/1.1 and HTTP/2, with process isolation and CPU pinning"
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "vffuunnyy", email = "vffuunnyy@gmail.com" }
 ]
@@ -17,10 +18,15 @@ dependencies = [
     "rnet>=3.0.0rc22",
     "requests>=2.32",
     "rich>=14",
+    "curl-cffi>=0.16",
+    "pyreqwest>=0.12",
+    "aiosonic>=1.0",
+    "pycurl>=7.47",
+    "wreq>=0.12",
 ]
 
 [project.scripts]
-bench-req = "bench_req.__main__:main"
+httpmark = "httpmark.__main__:main"
 
 [build-system]
 requires = ["hatchling"]

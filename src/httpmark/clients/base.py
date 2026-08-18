@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 
-from bench_req.config import BenchmarkConfig
+from httpmark.config import BenchmarkConfig
 
 
 class AsyncClient(ABC):

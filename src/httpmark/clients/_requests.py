@@ -1,7 +1,7 @@
 import requests
 
-from bench_req.clients.base import SyncClient
-from bench_req.config import BenchmarkConfig
+from httpmark.clients.base import SyncClient
+from httpmark.config import BenchmarkConfig
 
 
 class SyncHTTPClient(SyncClient):

@@ -1,7 +1,7 @@
 import primp
 
-from bench_req.clients.base import AsyncClient, SyncClient
-from bench_req.config import BenchmarkConfig
+from httpmark.clients.base import AsyncClient, SyncClient
+from httpmark.config import BenchmarkConfig
 
 
 class Client(AsyncClient):
@@ -21,6 +21,7 @@ class Client(AsyncClient):
 
     async def get(self, url: str) -> int:
         resp = await self._client.get(url)
+        resp.content
         return resp.status_code
 
 
@@ -40,4 +41,5 @@ class SyncHTTPClient(SyncClient):
 
     def get(self, url: str) -> int:
         resp = self._client.get(url)
+        resp.content
         return resp.status_code

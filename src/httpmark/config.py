@@ -16,3 +16,6 @@ class BenchmarkConfig:
     sync_requests: int = 200
 
     iter_timeout: float = 120.0
+    time_budget: float = 0.0
+
+    cpu_affinity: str | None = None

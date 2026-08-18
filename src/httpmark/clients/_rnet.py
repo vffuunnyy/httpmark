@@ -2,8 +2,8 @@ from pathlib import Path
 
 import rnet
 
-from bench_req.clients.base import AsyncClient, SyncClient
-from bench_req.config import BenchmarkConfig
+from httpmark.clients.base import AsyncClient, SyncClient
+from httpmark.config import BenchmarkConfig
 
 
 class Client(AsyncClient):
@@ -27,6 +27,7 @@ class Client(AsyncClient):
 
     async def get(self, url: str) -> int:
         resp = await self._client.get(url)
+        await resp.bytes()
         return resp.status.as_int()
 
 
@@ -46,4 +47,5 @@ class SyncHTTPClient(SyncClient):
 
     def get(self, url: str) -> int:
         resp = self._client.get(url)
+        resp.bytes()
         return resp.status.as_int()
