@@ -2,13 +2,13 @@ import ssl
 
 import httpx
 
-from httpmark.clients.base import AsyncClient
+from httpmark.clients.base import AsyncClient, SyncClient
 from httpmark.config import BenchmarkConfig
 
 
 class Client(AsyncClient):
     name = "httpx"
-    http_versions = ["1.1", "2"]
+    http_versions = ("1.1", "2")
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         ssl_context = ssl.create_default_context(cafile=config.ca_cert)
@@ -31,4 +31,28 @@ class Client(AsyncClient):
 
     async def get(self, url: str) -> int:
         resp = await self._client.get(url)
+        return resp.status_code
+
+
+class SyncHTTPClient(SyncClient):
+    name = "httpx"
+    http_versions = ("1.1",)
+
+    def setup(self, config: BenchmarkConfig) -> None:
+        ssl_context = ssl.create_default_context(cafile=config.ca_cert)
+        self._client = httpx.Client(
+            verify=ssl_context,
+            limits=httpx.Limits(
+                max_connections=config.pool_size,
+                max_keepalive_connections=config.pool_size,
+                keepalive_expiry=30.0,
+            ),
+            timeout=httpx.Timeout(60.0, pool=120.0),
+        )
+
+    def teardown(self) -> None:
+        self._client.close()
+
+    def get(self, url: str) -> int:
+        resp = self._client.get(url)
         return resp.status_code

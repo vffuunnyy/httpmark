@@ -1,4 +1,5 @@
 import json
+
 from dataclasses import asdict
 
 from rich.console import Console
@@ -8,8 +9,11 @@ from httpmark.config import BenchmarkConfig
 from httpmark.metrics import ClientResult
 
 
-def print_environment(console: Console, env: dict, config: BenchmarkConfig, warnings: list[str]) -> None:
-    console.print(f"[bold]bench-req[/bold] — {env['os']} {env['arch']}, {env['cpu']} ({env['cpu_count']} cores)")
+def print_environment(
+    console: Console, env: dict, config: BenchmarkConfig, warnings: list[str]
+) -> None:
+    machine = f"{env['os']} {env['arch']}, {env['cpu']} ({env['cpu_count']} cores)"
+    console.print(f"[bold]httpmark[/bold] — {machine}")
     console.print(f"  Python: {env['python']}")
     versions = " · ".join(f"{name} {ver}" for name, ver in env["packages"].items())
     console.print(f"  Packages: {versions}")

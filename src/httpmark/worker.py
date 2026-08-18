@@ -1,11 +1,14 @@
 import asyncio
+import contextlib
 import gc
 import json
 import signal
 import sys
 import time
+
 from array import array
 from collections import Counter
+from types import FrameType
 
 from httpmark import system
 from httpmark.clients import get_async_client, get_sync_client
@@ -13,12 +16,16 @@ from httpmark.clients.base import AsyncClient, SyncClient
 from httpmark.config import BenchmarkConfig
 
 
+_STATUS_MIN_OK = 200
+_STATUS_MIN_ERROR = 400
+
+
 def _emit(obj: dict) -> None:
     print(json.dumps(obj), flush=True)
 
 
 def _is_success(status: int) -> bool:
-    return 200 <= status < 400
+    return _STATUS_MIN_OK <= status < _STATUS_MIN_ERROR
 
 
 async def _async_iteration(client: AsyncClient, config: BenchmarkConfig) -> dict | None:
@@ -114,7 +121,7 @@ def _sync_iteration_with_timeout(client: SyncClient, config: BenchmarkConfig) ->
     if config.iter_timeout <= 0 or not hasattr(signal, "SIGALRM"):
         return _sync_iteration(client, config)
 
-    def on_alarm(signum, frame):
+    def on_alarm(_signum: int, _frame: FrameType | None) -> None:
         raise TimeoutError
 
     previous = signal.signal(signal.SIGALRM, on_alarm)
@@ -144,10 +151,8 @@ async def _run_async(spec: dict, config: BenchmarkConfig) -> dict:
         sys.exit(1)
 
     for _ in range(spec["warmup"]):
-        try:
+        with contextlib.suppress(Exception):
             await _async_iteration(client, config)
-        except Exception:
-            pass
         _emit({"event": "progress"})
 
     gc.collect()
@@ -172,10 +177,8 @@ async def _run_async(spec: dict, config: BenchmarkConfig) -> dict:
         if config.time_budget > 0 and time.monotonic() - budget_start > config.time_budget:
             break
 
-    try:
+    with contextlib.suppress(Exception):
         await client.teardown()
-    except Exception:
-        pass
 
     hist: Counter = Counter()
     return {
@@ -196,10 +199,8 @@ def _run_sync(spec: dict, config: BenchmarkConfig) -> dict:
         sys.exit(1)
 
     for _ in range(spec["warmup"]):
-        try:
+        with contextlib.suppress(Exception):
             _sync_iteration_with_timeout(client, config)
-        except Exception:
-            pass
         _emit({"event": "progress"})
 
     gc.collect()
@@ -224,10 +225,8 @@ def _run_sync(spec: dict, config: BenchmarkConfig) -> dict:
         if config.time_budget > 0 and time.monotonic() - budget_start > config.time_budget:
             break
 
-    try:
+    with contextlib.suppress(Exception):
         client.teardown()
-    except Exception:
-        pass
 
     hist: Counter = Counter()
     return {
@@ -254,14 +253,12 @@ def main() -> None:
     else:
         result = _run_sync(spec, config)
 
-    result.update(
-        {
-            "event": "result",
-            "affinity": affinity,
-            "affinity_error": affinity_error,
-            "nice": nice_level,
-        }
-    )
+    result.update({
+        "event": "result",
+        "affinity": affinity,
+        "affinity_error": affinity_error,
+        "nice": nice_level,
+    })
     _emit(result)
 
 

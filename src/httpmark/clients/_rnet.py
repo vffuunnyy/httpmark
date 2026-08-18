@@ -8,7 +8,7 @@ from httpmark.config import BenchmarkConfig
 
 class Client(AsyncClient):
     name = "rnet"
-    http_versions = ["1.1", "2"]
+    http_versions = ("1.1", "2")
 
     async def setup(self, config: BenchmarkConfig, http_version: str = "1.1") -> None:
         pool_size = max(config.pool_size, config.concurrency)
@@ -33,7 +33,7 @@ class Client(AsyncClient):
 
 class SyncHTTPClient(SyncClient):
     name = "rnet"
-    http_versions = ["1.1"]
+    http_versions = ("1.1",)
 
     def setup(self, config: BenchmarkConfig) -> None:
         self._client = rnet.blocking.Client(

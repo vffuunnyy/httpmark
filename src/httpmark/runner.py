@@ -3,6 +3,8 @@ import random
 import subprocess
 import sys
 import tempfile
+
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 
 from rich.progress import Progress, TaskID
@@ -10,6 +12,7 @@ from rich.progress import Progress, TaskID
 from httpmark.clients import ASYNC_HTTP1_CLIENTS, ASYNC_HTTP2_CLIENTS, SYNC_CLIENTS
 from httpmark.config import BenchmarkConfig
 from httpmark.metrics import ClientResult
+
 
 CATEGORIES = [
     ("sync-http1", "Sync HTTP/1.1", "sync", "1.1"),
@@ -52,7 +55,11 @@ def _split_iterations(total: int, rounds: int) -> list[int]:
     return [base + (1 if r < remainder else 0) for r in range(rounds)]
 
 
-def _run_worker(spec: dict, on_progress, on_note) -> tuple[dict | None, str | None]:
+def _run_worker(
+    spec: dict,
+    on_progress: Callable[[], None],
+    on_note: Callable[[str], None],
+) -> tuple[dict | None, str | None]:
     with tempfile.TemporaryFile(mode="w+") as stderr_file:
         proc = subprocess.Popen(
             [sys.executable, "-m", "httpmark.worker"],
@@ -61,7 +68,8 @@ def _run_worker(spec: dict, on_progress, on_note) -> tuple[dict | None, str | No
             stderr=stderr_file,
             text=True,
         )
-        assert proc.stdin is not None and proc.stdout is not None
+        if proc.stdin is None or proc.stdout is None:
+            raise RuntimeError("worker pipes were not created")
         proc.stdin.write(json.dumps(spec))
         proc.stdin.close()
 
@@ -90,6 +98,54 @@ def _run_worker(spec: dict, on_progress, on_note) -> tuple[dict | None, str | No
         return result, fatal
 
 
+def _run_round(
+    config: BenchmarkConfig,
+    entry: PlanEntry,
+    iterations: int,
+    total_ticks: int,
+    progress: Progress,
+) -> None:
+    spec = {
+        "client": entry.client,
+        "mode": entry.mode,
+        "http_version": entry.http_version,
+        "warmup": config.warmup,
+        "iterations": iterations,
+        "config": asdict(config),
+    }
+    task_id = entry.task_id
+    payload, fatal = _run_worker(
+        spec,
+        on_progress=lambda task_id=task_id: progress.advance(task_id),
+        on_note=entry.notes.append,
+    )
+    if fatal is not None:
+        if entry.result is None:
+            entry.result = ClientResult(entry.client, entry.category_label, error=fatal)
+        else:
+            entry.result.error = fatal
+        progress.update(
+            task_id,
+            description=f"  {entry.client} [red]FAILED: {fatal[:60]}[/red]",
+            completed=total_ticks,
+        )
+        return
+    round_result = ClientResult.from_worker(entry.client, entry.category_label, payload)
+    if entry.result is None:
+        entry.result = round_result
+    else:
+        entry.result.merge(round_result)
+
+
+def _add_progress_tasks(plan: list[PlanEntry], total_ticks: int, progress: Progress) -> None:
+    seen_categories: list[str] = []
+    for entry in plan:
+        if entry.category_label not in seen_categories:
+            seen_categories.append(entry.category_label)
+            progress.add_task(f"[bold]{entry.category_label}[/bold]", total=0)
+        entry.task_id = progress.add_task(f"  {entry.client}", total=total_ticks)
+
+
 def execute(
     config: BenchmarkConfig,
     plan: list[PlanEntry],
@@ -98,16 +154,8 @@ def execute(
     progress: Progress,
 ) -> dict[str, list[ClientResult]]:
     chunks = _split_iterations(config.iterations, rounds)
-
-    seen_categories: list[str] = []
-    for entry in plan:
-        if entry.category_label not in seen_categories:
-            seen_categories.append(entry.category_label)
-            progress.add_task(f"[bold]{entry.category_label}[/bold]", total=0)
-        entry.task_id = progress.add_task(
-            f"  {entry.client}",
-            total=rounds * config.warmup + config.iterations,
-        )
+    total_ticks = rounds * config.warmup + config.iterations
+    _add_progress_tasks(plan, total_ticks, progress)
 
     for round_index in range(rounds):
         order = list(plan)
@@ -116,41 +164,13 @@ def execute(
         for entry in order:
             if entry.result is not None and entry.result.error is not None:
                 continue
-            iterations = chunks[round_index]
-            if iterations == 0 and config.warmup == 0:
-                continue
-            spec = {
-                "client": entry.client,
-                "mode": entry.mode,
-                "http_version": entry.http_version,
-                "warmup": config.warmup,
-                "iterations": iterations,
-                "config": asdict(config),
-            }
-            task_id = entry.task_id
-            payload, fatal = _run_worker(
-                spec,
-                on_progress=lambda: progress.advance(task_id),
-                on_note=lambda msg: entry.notes.append(msg),
-            )
-            if fatal is not None:
-                if entry.result is None:
-                    entry.result = ClientResult(entry.client, entry.category_label, error=fatal)
-                else:
-                    entry.result.error = fatal
-                progress.update(
-                    task_id,
-                    description=f"  {entry.client} [red]FAILED: {fatal[:60]}[/red]",
-                    completed=rounds * config.warmup + config.iterations,
-                )
-                continue
-            round_result = ClientResult.from_worker(entry.client, entry.category_label, payload)
-            if entry.result is None:
-                entry.result = round_result
-            else:
-                entry.result.merge(round_result)
-            if round_index == rounds - 1:
-                progress.update(task_id, completed=rounds * config.warmup + config.iterations)
+            _run_round(config, entry, chunks[round_index], total_ticks, progress)
+            if (
+                round_index == rounds - 1
+                and entry.result is not None
+                and entry.result.error is None
+            ):
+                progress.update(entry.task_id, completed=total_ticks)
 
     results: dict[str, list[ClientResult]] = {}
     for entry in plan:
